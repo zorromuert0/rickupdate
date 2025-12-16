@@ -1,0 +1,204 @@
+import subprocess
+import platform
+import os
+import sys
+import random
+
+# =======================================================
+# 1. CONSTANTS
+# =======================================================
+# --- ANSI ESCAPE CODES FOR COLOR AND STYLE ---
+BOLD = '\033[1m'
+GREEN = '\033[92m'    # Rick's main voice color
+RED = '\033[31m'      # Failure messages
+YELLOW = '\033[93m'   # System headers and occasional quips
+RESET = '\033[0m'     
+
+# =======================================================
+# 2. HELPER FUNCTIONS
+# =======================================================
+def rick_print(text, color=GREEN):
+    """Prints text in Rick's chosen color and bold, adds a space, then resets the terminal."""
+    print(f"{BOLD}{color}{text}{RESET}\n")
+
+def system_print(text, color=YELLOW):
+    """Prints system messages/headers in YELLOW, then resets."""
+    print(f"{color}{text}{RESET}")
+
+def random_comment_injection(comment_list, chance=0.25):
+    """Prints a random comment from the list based on a probability chance."""
+    if random.random() < chance:
+        comment = random.choice(comment_list)
+        rick_print(f"[{comment}]", color=YELLOW) 
+
+# =======================================================
+# 3. DATA STRUCTURES
+# =======================================================
+# --- RICK'S COMMENTARY BANK ---
+RICK_LINES = {
+    "START": [
+        "Wubba Lubba Dub Dub! Time to update your pathetic machine, you brainless meatbag. Can't even type commands yourself? Sad.",
+        "Alright, you low-IQ life form, prepare for an update. I'm only doing this because I can't stand dealing with your digital incompetence.",
+        "Look, I'm not your dad. But someone has to fix this mess. Get ready to watch the terminal, you lazy S.O.B. It's the most productive thing you'll do today.",
+        "In a universe of infinite possibilities, you chose *this* computer. Fine. Let's make it marginally less disappointing. *Burp*.",
+        "Commencing system update protocol. Just another meaningless task in a meaningless existence. Enjoy the show, worm.",
+    ],
+    "DETECTED": lambda distro: random.choice([
+        f"It's a {distro}. They all suck. Now shut up and let me fix your sad little dimension.",
+        f"Ah, {distro}. Predictable. Let's force some progress onto this relic.",
+        f"{distro} detected. Don't worry, even a genius like me can't fix your questionable life choices, but I can fix this OS.",
+        f"Running on {distro}. Pathetic. Just be thankful I'm here to streamline your dependency hell.",
+        f"Ugh, {distro}. Whatever. Just be still while I work. I need a drink.",
+    ]),
+    "UPDATE_START": lambda pkg_mgr: random.choice([
+        f"Protocol {pkg_mgr.upper()} engaged. Watch closely, this is the most productive thing you'll do all week. *Burp*.",
+        f"Initiating package sync with {pkg_mgr.upper()}. Try not to think about the fleeting nature of it all.",
+        f"Downloading nonsense! Get excited, {pkg_mgr.upper()} is about to bore you to tears.",
+        f"Upgrading packages via {pkg_mgr.upper()}. Let's see how many of your fragile configurations break this time.",
+        f"Starting {pkg_mgr.upper()} process. If this goes wrong, blame yourself. You're running the machine.",
+    ]),
+    "CLEAN_START": [
+        "Cleanup time. Look at this digital hoarding! Delete, delete, delete. Feel the nihilism, Morty.",
+        "Time for the trash disposal. Seriously, clean up your digital act. You're a digital hoarder.",
+        "Autoremove engaged. Goodbye, unwanted files. Just like many of my relationships. Don't think about it.",
+        "Shedding old dependencies. The illusion of progress continues. Autoclean activated.",
+        "Done downloading garbage. Now to eliminate the leftovers. It's the least I can do, considering.",
+    ],
+    "SUCCESS": [
+        "Updated. The chances of your pathetic existence improving are now 0.0001% higher. You're welcome. Now get out of my sight.",
+        "Completed! System status: marginally less awful. Don't get used to it.",
+        "Done. Everything is fixed... for now. Go find something less embarrassing to do. I'm going for a drink.",
+        "Operation successful. I hate you less now. Minimal errors detected. Barely.",
+        "It worked. Against all odds. Now go contemplate the sheer randomness of the universe while your kernel runs smoothly.",
+    ],
+    "FAILURE": lambda error: random.choice([
+        f"It broke. Of course, it broke! System Error: {error}. What did you expect, competence? I'm going to a dimension with better package management.",
+        f"FAILURE! {error}. Don't worry, failure is just a consequence of existing. You're good at that.",
+        f"Oh, look, an error: {error}. Are you surprised? Everything falls apart eventually.",
+        f"Told you so! This is why we can't have nice things. Fix it yourself, I'm tired.",
+        f"System went sideways ({error}). Restart and reflect on your many personal failures. Not my problem. Nobody exists on purpose, nobody belongs anywhere, everybody's gonna die. Come watch TV.",
+    ]),
+    "NO_MGR": [
+        "Error. No discernible package manager found. You're running a space heater, not a computer. I'm done.",
+        "What in the interdimensional hell is this? No package manager? Go back to Windows, you scrub.",
+        "I can't update this. The operating system is functionally useless. Find a new planet.",
+        "This isn't even a real distro. I'm leaving. Figure it out.",
+        "Couldn't detect the system. Maybe it's not worth saving. Status: Abandoning Ship.",
+    ],
+    "RANDOM_QUIP": [
+        "Don't worry, this only has a 30% chance of causing existential dread.",
+        "That command? It's meaningless. Like your life. Keep watching.",
+        "If you break this, I'm blaming you, not the code.",
+        "Just a test. Don't think about it.",
+        "I'm sorry, but your opinion means very little to me.",
+        "Wait, was I supposed to be supervising this?",
+        "I turned myself into a pickle, Morty! I'm Pickle Riiiick!",
+        "Hit the sack, Jack! Or don't, I'm not your mother.",
+    ],
+}
+
+# =======================================================
+# 4. MAIN LOGIC FUNCTIONS
+# =======================================================
+def run_command(command, pkg_mgr_name):
+    """Executes a shell command and streams output to the user."""
+    
+    # Inject a random comment before starting the command
+    random_comment_injection(RICK_LINES["RANDOM_QUIP"], chance=0.2) 
+    
+    # --- COMMAND DISPLAY LOGIC ---
+    # We skip the first two elements ('sudo' and 'apt') for the display string
+    # to avoid printing "sudo apt apt update"
+    command_to_display = ' '.join(command[2:])
+    system_print(f"\n--- Running: sudo {pkg_mgr_name} {command_to_display} ---", color=YELLOW)
+    
+    try:
+        subprocess.run(command, check=True, stdout=sys.stdout, stderr=sys.stderr)
+        random_comment_injection(RICK_LINES["RANDOM_QUIP"], chance=0.1) 
+        return True
+    except subprocess.CalledProcessError as e:
+        rick_print(RICK_LINES["FAILURE"](f"Command failed with exit code {e.returncode}."), color=RED)
+        return False
+    except FileNotFoundError:
+        rick_print(RICK_LINES["FAILURE"](f"Command not found: {command[0]}"), color=RED)
+        return False
+
+def get_distro_info():
+    """Detects the Linux distribution."""
+    if os.path.isfile('/etc/os-release'):
+        with open('/etc/os-release', 'r') as f:
+            content = dict(line.strip().split('=', 1) for line in f.readlines() if '=' in line)
+            distro_id = content.get('ID', '').lower()
+            distro_name = content.get('PRETTY_NAME', 'Unknown Linux').replace('"', '')
+            return distro_id, distro_name
+    return 'unknown', platform.system()
+
+def update_system():
+    """Selects and runs update commands based on the detected distro ID."""
+    distro_id, distro_name = get_distro_info()
+    
+    rick_print(random.choice(RICK_LINES["START"])) 
+    rick_print(RICK_LINES["DETECTED"](distro_name)) 
+    
+    # Package Manager Command Lists
+    package_managers = {
+        'apt': {
+            'commands': [
+                ['apt', 'update'],
+                ['apt', 'upgrade', '-y']
+            ],
+            'cleanup': [
+                ['apt', 'autoremove', '-y'],
+                ['apt', 'autoclean']
+            ],
+            'distros': ['debian', 'ubuntu', 'linuxmint', 'pop', 'raspbian']
+        },
+        'dnf': {
+            'commands': [
+                ['dnf', 'upgrade', '--refresh', '-y']
+            ],
+            'cleanup': [
+                ['dnf', 'autoremove', '-y']
+            ],
+            'distros': ['fedora', 'centos', 'rhel']
+        },
+        'pacman': {
+            'commands': [
+                ['pacman', '-Syu', '--noconfirm'] 
+            ],
+            'cleanup': [], 
+            'distros': ['arch', 'manjaro']
+        }
+    }
+    
+    found_manager = False
+    for pkg_mgr, data in package_managers.items():
+        if distro_id in data['distros']:
+            found_manager = True
+            
+            rick_print(RICK_LINES["UPDATE_START"](pkg_mgr.upper()))
+            commands_with_sudo = [['sudo'] + cmd for cmd in data['commands']]
+            for cmd in commands_with_sudo:
+                if not run_command(cmd, pkg_mgr):
+                    rick_print(random.choice(["Update aborted. Don't look at me.", "Failed. Seriously, just use the terminal next time."]), color=RED)
+                    return
+
+            if data['cleanup']:
+                rick_print(random.choice(RICK_LINES["CLEAN_START"]))
+                cleanup_with_sudo = [['sudo'] + cmd for cmd in data['cleanup']]
+                for cmd in cleanup_with_sudo:
+                    if not run_command(cmd, pkg_mgr):
+                        rick_print(random.choice(["Cleanup partially failed. Whatever.", "Another failure to add to your list."]), color=YELLOW)
+                        break 
+            
+            rick_print(random.choice(RICK_LINES["SUCCESS"]), color=GREEN)
+            return
+
+    if not found_manager:
+        rick_print(random.choice(RICK_LINES["NO_MGR"]), color=YELLOW)
+
+# =======================================================
+# 5. ENTRY POINT
+# =======================================================
+if __name__ == "__main__":
+    update_system()
